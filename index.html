@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Evaluación Escolar</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <!-- jsPDF & autoTable para PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800 font-sans select-none" oncontextmenu="return false;">
+
+    <!-- BARRA NAVEGACIÓN PRINCIPAL -->
+    <header class="bg-blue-900 text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-graduation-cap text-2xl text-amber-400"></i>
+                <h1 class="text-xl font-bold tracking-wide">Evaluaciones Escolares</h1>
+            </div>
+            <div id="nav-actions">
+                <button onclick="mostrarVista('login-profesor')" class="text-xs bg-blue-800 hover:bg-blue-700 px-3 py-1.5 rounded text-blue-200 transition">
+                    <i class="fa-solid fa-user-gear mr-1"></i> Panel Profesor
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTENEDOR PRINCIPAL -->
+    <main class="max-w-7xl mx-auto px-4 py-6">
+
+        <!-- 1. VISTA INGRESO ALUMNO -->
+        <section id="vista-ingreso-alumno" class="max-w-md mx-auto bg-white rounded-xl shadow-md p-6 my-10 border border-slate-200">
+            <div class="text-center mb-6">
+                <div class="inline-block p-3 bg-blue-50 text-blue-600 rounded-full mb-2">
+                    <i class="fa-solid fa-user-graduate text-3xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800">Ingreso de Alumnos</h2>
+                <p class="text-sm text-slate-500">Ingresa tus datos obligatorios para comenzar</p>
+            </div>
+
+            <form id="form-alumno-login" onsubmit="iniciarSesionAlumno(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre Completo *</label>
+                    <input type="text" id="alumno-nombre" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Colegio *</label>
+                    <select id="alumno-colegio" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                        <option value="">Selecciona Colegio...</option>
+                        <option value="Colegio 1">Colegio Esmeralda</option>
+                        <option value="Colegio 2">Colegio Innova</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Grado *</label>
+                        <select id="alumno-grado" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                            <option value="">Grado...</option>
+                            <option value="4to Bachillerato">4to Bachillerato</option>
+                            <option value="5to Bachillerato">5to Bachillerato</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Sección *</label>
+                        <input type="text" id="alumno-seccion" placeholder="Ej. A" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm uppercase">
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg shadow-md transition text-sm">
+                    Ver Exámenes Disponibles <i class="fa-solid fa-arrow-right ml-1"></i>
+                </button>
+            </form>
+        </section>
+
+        <!-- 2. VISTA SELECCIÓN EXAMEN ALUMNO -->
+        <section id="vista-lista-examenes" class="hidden max-w-4xl mx-auto">
+            <div class="bg-white p-4 rounded-xl shadow-sm mb-6 flex justify-between items-center border border-slate-200">
+                <div>
+                    <h2 id="alumno-saludo" class="text-lg font-bold text-slate-800">Hola, Alumno</h2>
+                    <p id="alumno-info-tag" class="text-xs text-slate-500">Colegio | Grado | Sección</p>
+                </div>
+                <button onclick="cerrarSesionAlumno()" class="text-xs text-red-600 hover:text-red-800 font-semibold">
+                    <i class="fa-solid fa-right-from-bracket"></i> Salir
+                </button>
+            </div>
+
+            <h3 class="text-md font-bold text-slate-700 mb-3 flex items-center">
+                <i class="fa-solid fa-file-pen mr-2 text-blue-600"></i> Exámenes Disponibles
+            </h3>
+            <div id="contenedor-examenes-disponibles" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Se llena dinámicamente -->
+            </div>
+        </section>
+
+        <!-- 3. VISTA REALIZAR EXAMEN ALUMNO -->
+        <section id="vista-evaluacion" class="hidden max-w-3xl mx-auto">
+            <!-- Barra Superior Flotante con Temporizador -->
+            <div class="bg-slate-900 text-white p-4 rounded-xl shadow-md sticky top-16 z-30 mb-6 flex justify-between items-center border-b-4 border-amber-500">
+                <div>
+                    <h3 id="eval-materia" class="font-bold text-base">Materia</h3>
+                    <p id="eval-valor" class="text-xs text-slate-300">Valor: -- Puntos</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs text-slate-400 block uppercase font-bold">Tiempo Restante</span>
+                    <div id="eval-timer" class="text-2xl font-mono font-bold text-amber-400">00:00</div>
+                </div>
+            </div>
+
+            <!-- Header Examen / Logo -->
+            <div class="bg-white p-6 rounded-xl shadow-sm mb-6 border border-slate-200 text-center">
+                <img id="eval-logo" src="" alt="Logo" class="max-h-20 mx-auto mb-3 hidden">
+                <h2 id="eval-titulo" class="text-xl font-bold text-slate-800">Título del Examen</h2>
+                <div class="mt-2 inline-flex gap-2 text-xs text-slate-500">
+                    <span id="eval-colegio" class="bg-slate-100 px-2 py-1 rounded">Colegio</span>
+                    <span id="eval-grado" class="bg-slate-100 px-2 py-1 rounded">Grado/Sección</span>
+                </div>
+            </div>
+
+            <form id="form-examen-alumno" onsubmit="finalizarExamenManual(event)" class="space-y-6">
+                <div id="contenedor-series-alumno">
+                    <!-- Se renderizan las preguntas aquí -->
+                </div>
+
+                <div class="p-4 bg-white rounded-xl shadow-sm border border-slate-200 text-center">
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-3 rounded-lg shadow-md transition text-base">
+                        <i class="fa-solid fa-paper-plane mr-2"></i> Finalizar y Enviar Examen
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- 4. VISTA RESULTADO FINAL ALUMNO -->
+        <section id="vista-resultado-alumno" class="hidden max-w-2xl mx-auto bg-white p-6 rounded-xl shadow-md border border-slate-200 text-center">
+            <div id="res-icon" class="text-5xl mb-3"></div>
+            <h2 class="text-2xl font-bold text-slate-800">Resultado del Examen</h2>
+            <p id="res-alumno-nombre" class="text-slate-500 text-sm mb-4">Alumno</p>
+
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 max-w-sm mx-auto">
+                <span class="text-xs font-bold text-slate-400 uppercase">Punteo Obtenido</span>
+                <div id="res-punteo" class="text-4xl font-extrabold text-blue-600 my-1">0 / 0</div>
+                <div id="res-porcentaje" class="text-xs font-semibold text-slate-600">0%</div>
+            </div>
+
+            <div id="res-faltas-box" class="hidden bg-amber-50 border border-amber-200 text-amber-800 text-xs p-3 rounded-lg mb-6 text-left">
+                <i class="fa-solid fa-triangle-exclamation text-amber-600 mr-1"></i>
+                <strong>Registro de Faltas:</strong> Se detectaron <span id="res-total-faltas">0</span> infracciones por cambio de pantalla durante tu prueba.
+            </div>
+
+            <h3 class="text-sm font-bold text-slate-700 text-left mb-3">Desglose de Respuestas:</h3>
+            <div id="res-desglose" class="space-y-3 text-left mb-6 text-sm">
+                <!-- Se llena dinámicamente -->
+            </div>
+
+            <button onclick="mostrarVista('ingreso-alumno')" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold text-sm">
+                Volver al Inicio
+            </button>
+        </section>
+
+        <!-- 5. LOGIN PROFESOR MODAL -->
+        <section id="vista-login-profesor" class="hidden max-w-xs mx-auto bg-white p-6 rounded-xl shadow-md my-12 border">
+            <h3 class="text-lg font-bold text-center mb-4 text-slate-800">Acceso Profesor</h3>
+            <input type="password" id="profesor-pass" placeholder="Contraseña de Administración" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm outline-none">
+            <button onclick="autenticarProfesor()" class="w-full bg-slate-800 text-white py-2 rounded-lg font-bold text-sm">
+                Entrar al Panel
+            </button>
+        </section>
+
+        <!-- 6. PANEL DE CONTROL DEL PROFESOR -->
+        <section id="vista-panel-profesor" class="hidden space-y-6">
+            <div class="bg-white p-4 rounded-xl shadow-sm border flex justify-between items-center">
+                <h2 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-sliders text-blue-600 mr-2"></i> Panel Docente</h2>
+                <div class="flex gap-2">
+                    <button onclick="exportarRespaldoJSON()" class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded border text-slate-700">
+                        <i class="fa-solid fa-download"></i> Respaldar JSON
+                    </button>
+                    <button onclick="cerrarSesionProfesor()" class="text-xs bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded border border-red-200">
+                        Salir
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pestañas del Panel -->
+            <div class="flex border-b border-slate-200 gap-2">
+                <button onclick="cambiarTabProfesor('examenes')" id="tab-examenes" class="py-2 px-4 font-bold text-sm border-b-2 border-blue-600 text-blue-600">
+                    <i class="fa-solid fa-folder-open mr-1"></i> Exámenes
+                </button>
+                <button onclick="cambiarTabProfesor('resultados')" id="tab-resultados" class="py-2 px-4 font-bold text-sm text-slate-500">
+                    <i class="fa-solid fa-chart-simple mr-1"></i> Notas y Faltas
+                </button>
+            </div>
+
+            <!-- SUB-TAB 1: GESTIÓN DE EXÁMENES -->
+            <div id="subtab-examenes" class="space-y-4">
+                <div class="flex justify-between items-center gap-2 flex-wrap">
+                    <div class="flex gap-2 flex-1 min-w-[280px]">
+                        <input type="text" id="filtro-busqueda" oninput="filtrarExamenes()" placeholder="Buscar examen por título o materia..." class="px-3 py-1.5 border rounded-lg text-sm flex-1">
+                        <select id="filtro-colegio" onchange="filtrarExamenes()" class="px-3 py-1.5 border rounded-lg text-sm">
+                            <option value="">Todos los Colegios</option>
+                            <option value="Colegio 1">Colegio Esmeralda</option>
+                            <option value="Colegio 2">Colegio Innova</option>
+                        </select>
+                    </div>
+                    <button onclick="abrirCreadorExamen()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-lg text-sm">
+                        <i class="fa-solid fa-plus mr-1"></i> Crear Examen
+                    </button>
+                </div>
+
+                <div id="tabla-examenes-contenedor" class="bg-white rounded-xl shadow-sm border overflow-x-auto">
+                    <!-- Tabla de Exámenes -->
+                </div>
+            </div>
+
+            <!-- SUB-TAB 2: RESULTADOS Y NOTAS -->
+            <div id="subtab-resultados" class="hidden space-y-4">
+                <div class="flex gap-2 flex-wrap items-center justify-between">
+                    <div class="flex gap-2 flex-1 min-w-[280px]">
+                        <input type="text" id="filtro-alumno-search" oninput="filtrarResultados()" placeholder="Buscar por nombre de alumno..." class="px-3 py-1.5 border rounded-lg text-sm flex-1">
+                        <select id="filtro-res-colegio" onchange="filtrarResultados()" class="px-3 py-1.5 border rounded-lg text-sm">
+                            <option value="">Todos los Colegios</option>
+                            <option value="Colegio 1">Colegio Esmeralda</option>
+                            <option value="Colegio 2">Colegio Innova</option>
+                        </select>
+                    </div>
+                    <button onclick="generarReportePDFGeneral()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-lg text-sm">
+                        <i class="fa-solid fa-file-pdf mr-1"></i> Imprimir Reporte PDF
+                    </button>
+                </div>
+
+                <div id="tabla-resultados-contenedor" class="bg-white rounded-xl shadow-sm border overflow-x-auto">
+                    <!-- Tabla de Resultados -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. CREADOR / EDITOR DE EXAMEN (MODAL / OVERLAY) -->
+        <section id="vista-creador-examen" class="hidden fixed inset-0 bg-slate-900/60 z-50 flex justify-center items-start overflow-y-auto p-4">
+            <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full my-8 p-6 space-y-6 relative">
+                <div class="flex justify-between items-center border-b pb-3">
+                    <h3 id="creador-titulo" class="text-xl font-bold text-slate-800">Nuevo Examen</h3>
+                    <button onclick="cerrarCreadorExamen()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+                </div>
+
+                <form id="form-crear-examen" onsubmit="guardarExamenDB(event)" class="space-y-4">
+                    <input type="hidden" id="examen-id-edit">
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="md:col-span-2">
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Título del Examen *</label>
+                            <input type="text" id="ex-titulo" required class="w-full px-3 py-2 border rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Materia *</label>
+                            <input type="text" id="ex-materia" required class="w-full px-3 py-2 border rounded-lg text-sm">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Colegio *</label>
+                            <select id="ex-colegio" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <option value="TODOS">Todos los Colegios</option>
+                                <option value="Colegio 1">Colegio Esmeralda</option>
+                                <option value="Colegio 2">Colegio Innova</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Grado *</label>
+                            <select id="ex-grado" class="w-full px-3 py-2 border rounded-lg text-sm">
+                                <option value="TODOS">Todos los Grados</option>
+                                <option value="4to Bachillerato">4to Bachillerato</option>
+                                <option value="5to Bachillerato">5to Bachillerato</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Sección *</label>
+                            <input type="text" id="ex-seccion" placeholder="TODAS o ej. A" class="w-full px-3 py-2 border rounded-lg text-sm uppercase">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tiempo (Minutos) *</label>
+                            <input type="number" id="ex-tiempo" min="1" value="30" required class="w-full px-3 py-2 border rounded-lg text-sm">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Valor Total (Puntos)</label>
+                            <input type="number" id="ex-valor" value="20" required class="w-full px-3 py-2 border rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">URL Logo Colegio (Opcional)</label>
+                            <input type="url" id="ex-logo" placeholder="https://..." class="w-full px-3 py-2 border rounded-lg text-sm">
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Series y Preguntas -->
+                    <div>
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="font-bold text-slate-800 text-sm">Series de Preguntas</h4>
+                            <button type="button" onclick="agregarSerieCreador()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1 rounded text-xs">
+                                <i class="fa-solid fa-plus mr-1"></i> Agregar Serie
+                            </button>
+                        </div>
+                        <div id="contenedor-series-creador" class="space-y-4">
+                            <!-- Bloques de Series -->
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-2 pt-4 border-t">
+                        <button type="button" onclick="cerrarCreadorExamen()" class="px-4 py-2 border rounded-lg text-sm">Cancelar</button>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-lg text-sm">Guardar Examen</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL ALERTA FALTAS / INTENTO DE TRAMPA -->
+    <div id="modal-falta" class="hidden fixed inset-0 bg-red-900/80 z-50 flex justify-center items-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 text-center border-4 border-red-600 animate-bounce">
+            <div class="text-red-600 text-5xl mb-2"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <h3 class="text-xl font-bold text-red-700">¡Advertencia de Seguridad!</h3>
+            <p class="text-sm text-slate-600 my-3">
+                Has cambiado de pantalla o minimizado el navegador. Esta acción se registra como una <strong>falta</strong>.
+            </p>
+            <div class="bg-red-50 p-2 rounded text-red-800 text-xs font-bold mb-4">
+                Faltas cometidas: <span id="falta-contador" class="text-base">0</span> / 3
+            </div>
+            <button onclick="cerrarModalFalta()" class="w-full bg-red-600 text-white py-2 rounded-lg font-bold text-sm">
+                Entendido y Continuar
+            </button>
+        </div>
+    </div>
+
+    <!-- Script Principal -->
+    <script src="app.js"></script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Gestión Escolar y Exámenes</title>
+  <title>Sistema Escolar - Autenticación y Exámenes</title>
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- FontAwesome Icons -->
@@ -11,29 +11,64 @@
   <style>
     body { background-color: #f4f6f9; }
     .sidebar { min-height: 100vh; background-color: #1e293b; color: white; }
-    .sidebar .nav-link { color: #cbd5e1; }
+    .sidebar .nav-link { color: #cbd5e1; cursor: pointer; }
     .sidebar .nav-link.active { background-color: #2563eb; color: white; }
     .card { border-radius: 10px; border: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    .auth-container { max-width: 400px; margin: 80px auto; }
   </style>
 </head>
 <body>
 
-<div class="container-fluid">
+<!-- MÓDULO DE AUTENTICACIÓN (LOGIN Y REGISTRO) -->
+<div id="sec-auth" class="container">
+  <div class="card auth-container p-4">
+    <div class="text-center mb-4">
+      <h3><i class="fa-solid fa-school text-primary me-2"></i>EduControl</h3>
+      <p class="text-muted" id="authSubtitle">Iniciar Sesión para acceder</p>
+    </div>
+
+    <!-- Alertas de Error / Éxito -->
+    <div id="authAlert" class="alert alert-danger d-none" role="alert"></div>
+
+    <form id="formAuth" onsubmit="procesarAutenticacion(event)">
+      <div class="mb-3">
+        <label class="form-label">Correo Electrónico</label>
+        <input type="email" id="authEmail" class="form-control" required placeholder="correo@ejemplo.com">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Contraseña</label>
+        <input type="password" id="authPassword" class="form-control" required placeholder="******">
+      </div>
+
+      <button type="submit" id="btnAuthSubmit" class="btn btn-primary w-100 mb-3">Ingresar</button>
+    </form>
+
+    <div class="text-center">
+      <small id="toggleAuthText">¿No tienes cuenta? <a href="#" onclick="toggleAuthMode(true)">Regístrate aquí</a></small>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL PRINCIPAL DE ADMINISTRACIÓN (OCULTO HASTA AUTENTICAR) -->
+<div id="sec-app" class="container-fluid d-none">
   <div class="row">
     <!-- Navegación Lateral -->
     <div class="col-md-3 col-lg-2 sidebar p-3">
       <h4 class="text-center mb-4"><i class="fa-solid fa-school me-2"></i>EduControl</h4>
+      <div class="text-center mb-3 text-muted small" id="userEmailDisplay"></div>
       <ul class="nav nav-pills flex-column mb-auto">
         <li class="nav-item mb-2">
-          <a href="#" class="nav-link active" onclick="switchTab('colegios')"><i class="fa-solid fa-building me-2"></i>Colegios</a>
+          <a class="nav-link active" onclick="switchTab('colegios', event)"><i class="fa-solid fa-building me-2"></i>Colegios</a>
         </li>
         <li class="nav-item mb-2">
-          <a href="#" class="nav-link" onclick="switchTab('grados')"><i class="fa-solid fa-graduation-cap me-2"></i>Grados y Secciones</a>
+          <a class="nav-link" onclick="switchTab('grados', event)"><i class="fa-solid fa-graduation-cap me-2"></i>Grados y Secciones</a>
         </li>
         <li class="nav-item mb-2">
-          <a href="#" class="nav-link" onclick="switchTab('examenes')"><i class="fa-solid fa-file-pen me-2"></i>Crear Examen</a>
+          <a class="nav-link" onclick="switchTab('examenes', event)"><i class="fa-solid fa-file-pen me-2"></i>Crear Examen</a>
         </li>
       </ul>
+      <hr>
+      <button class="btn btn-outline-danger w-100" onclick="cerrarSesion()"><i class="fa-solid fa-right-from-bracket me-2"></i>Cerrar Sesión</button>
     </div>
 
     <!-- Contenido Principal -->
@@ -64,7 +99,7 @@
       </div>
 
       <!-- SECCIÓN: GRADOS Y SECCIONES -->
-      <div id="sec-grados" style="display: none;">
+      <div id="sec-grados" class="d-none">
         <div class="d-flex justify-content-between align-items-center mb-4">
           <h2>Gestión de Grados y Secciones</h2>
           <button class="btn btn-primary" onclick="openGradoModal()"><i class="fa-solid fa-plus me-2"></i>Agregar Grado</button>
@@ -88,7 +123,7 @@
       </div>
 
       <!-- SECCIÓN: EXÁMENES -->
-      <div id="sec-examenes" style="display: none;">
+      <div id="sec-examenes" class="d-none">
         <h2 class="mb-4">Creación de Exámenes</h2>
         <div class="card p-4">
           <form id="formExamen" onsubmit="guardarExamen(event)">
@@ -191,14 +226,15 @@
   </div>
 </div>
 
-<!-- SDK Firebase (v9 Compat para integración rápida) -->
+<!-- SDK Firebase v9 Compat -->
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-  // CONFIGURACIÓN DE FIREBASE (Reemplaza con las llaves de tu proyecto)
+  // CONFIGURACIÓN DE FIREBASE (Reemplaza con tus llaves reales)
   const firebaseConfig = {
     apiKey: "TU_API_KEY",
     authDomain: "TU_PROJECT_ID.firebaseapp.com",
@@ -209,29 +245,89 @@
   };
 
   firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
   const db = firebase.firestore();
 
   // Variables Globales
   let colegios = [];
   let grados = [];
-  let modalColObj = new bootstrap.Modal(document.getElementById('modalColegio'));
-  let modalGraObj = new bootstrap.Modal(document.getElementById('modalGrado'));
+  let isRegistering = false;
+  let modalColObj, modalGraObj;
 
-  // Carga Inicial
   window.onload = () => {
-    cargarColegios();
-    cargarGrados();
+    modalColObj = new bootstrap.Modal(document.getElementById('modalColegio'));
+    modalGraObj = new bootstrap.Modal(document.getElementById('modalGrado'));
+    
+    // Verificación de Autenticación
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        document.getElementById('sec-auth').classList.add('d-none');
+        document.getElementById('sec-app').classList.remove('d-none');
+        document.getElementById('userEmailDisplay').innerText = user.email;
+        cargarColegios();
+        cargarGrados();
+      } else {
+        document.getElementById('sec-auth').classList.remove('d-none');
+        document.getElementById('sec-app').classList.add('d-none');
+      }
+    });
   };
 
-  function switchTab(tab) {
-    document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-    event.target.classList.add('active');
-    
-    document.getElementById('sec-colegios').style.display = tab === 'colegios' ? 'block' : 'none';
-    document.getElementById('sec-grados').style.display = tab === 'grados' ? 'block' : 'none';
-    document.getElementById('sec-examenes').style.display = tab === 'examenes' ? 'block' : 'none';
+  // ==================== LÓGICA DE AUTENTICACIÓN ====================
+  function toggleAuthMode(register) {
+    isRegistering = register;
+    document.getElementById('authSubtitle').innerText = register ? 'Crear una nueva cuenta' : 'Iniciar Sesión para acceder';
+    document.getElementById('btnAuthSubmit').innerText = register ? 'Registrarse' : 'Ingresar';
+    document.getElementById('toggleAuthText').innerHTML = register 
+      ? '¿Ya tienes cuenta? <a href="#" onclick="toggleAuthMode(false)">Inicia sesión aquí</a>'
+      : '¿No tienes cuenta? <a href="#" onclick="toggleAuthMode(true)">Regístrate aquí</a>';
+    document.getElementById('authAlert').classList.add('d-none');
+  }
 
-    if(tab === 'examenes') cargarSelectsExamen();
+  async function procesarAutenticacion(e) {
+    e.preventDefault();
+    const email = document.getElementById('authEmail').value;
+    const password = document.getElementById('authPassword').value;
+    const alertBox = document.getElementById('authAlert');
+    alertBox.classList.add('d-none');
+
+    try {
+      if (isRegistering) {
+        await auth.createUserWithEmailAndPassword(email, password);
+      } else {
+        await auth.signInWithEmailAndPassword(email, password);
+      }
+    } catch (error) {
+      alertBox.innerText = obtenerMensajeError(error.code);
+      alertBox.classList.remove('d-none');
+    }
+  }
+
+  function cerrarSesion() {
+    auth.signOut();
+  }
+
+  function obtenerMensajeError(code) {
+    switch (code) {
+      case 'auth/user-not-found': return 'El usuario no se encuentra registrado.';
+      case 'auth/wrong-password': return 'Contraseña incorrecta.';
+      case 'auth/email-already-in-use': return 'El correo electrónico ya está registrado.';
+      case 'auth/weak-password': return 'La contraseña debe tener al menos 6 caracteres.';
+      case 'auth/invalid-email': return 'Formato de correo electrónico no válido.';
+      default: return 'Error en la autenticación. Intente de nuevo.';
+    }
+  }
+
+  // ==================== NAVEGACIÓN DE PESTAÑAS ====================
+  function switchTab(tab, event) {
+    document.querySelectorAll('.sidebar .nav-link').forEach(el => el.classList.remove('active'));
+    if(event) event.target.classList.add('active');
+    
+    document.getElementById('sec-colegios').classList.toggle('d-none', tab !== 'colegios');
+    document.getElementById('sec-grados').classList.toggle('d-none', tab !== 'grados');
+    document.getElementById('sec-examenes').classList.toggle('d-none', tab !== 'examenes');
+
+    if (tab === 'examenes') cargarSelectsExamen();
   }
 
   // ==================== MÓDULO COLEGIOS ====================
@@ -442,7 +538,7 @@
     } else if (tipo === 'MC') {
       htmlPregunta += `
         <div class="mb-2">
-          <label class="form-label">Opciones de Respuesta (Marque la radio de la respuesta correcta)</label>
+          <label class="form-label">Opciones de Respuesta (Marque la respuesta correcta)</label>
           <div class="opciones-container_${pId}">
             ${[0, 1, 2].map(i => `
               <div class="input-group mb-2">
@@ -508,6 +604,7 @@
       colegioId,
       gradoId,
       preguntas,
+      creadoPor: auth.currentUser.email,
       fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
     };
 

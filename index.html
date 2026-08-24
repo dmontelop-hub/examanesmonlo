@@ -1,348 +1,526 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Evaluación Escolar</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-    <!-- jsPDF & autoTable para PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Gestión Escolar y Exámenes</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f4f6f9; }
+    .sidebar { min-height: 100vh; background-color: #1e293b; color: white; }
+    .sidebar .nav-link { color: #cbd5e1; }
+    .sidebar .nav-link.active { background-color: #2563eb; color: white; }
+    .card { border-radius: 10px; border: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+  </style>
 </head>
-<body class="bg-slate-100 min-h-screen text-slate-800 font-sans select-none" oncontextmenu="return false;">
+<body>
 
-    <!-- BARRA NAVEGACIÓN PRINCIPAL -->
-    <header class="bg-blue-900 text-white shadow-lg sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <i class="fa-solid fa-graduation-cap text-2xl text-amber-400"></i>
-                <h1 class="text-xl font-bold tracking-wide">Evaluaciones Escolares</h1>
-            </div>
-            <div id="nav-actions">
-                <button onclick="mostrarVista('login-profesor')" class="text-xs bg-blue-800 hover:bg-blue-700 px-3 py-1.5 rounded text-blue-200 transition">
-                    <i class="fa-solid fa-user-gear mr-1"></i> Panel Profesor
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <!-- CONTENEDOR PRINCIPAL -->
-    <main class="max-w-7xl mx-auto px-4 py-6">
-
-        <!-- 1. VISTA INGRESO ALUMNO -->
-        <section id="vista-ingreso-alumno" class="max-w-md mx-auto bg-white rounded-xl shadow-md p-6 my-10 border border-slate-200">
-            <div class="text-center mb-6">
-                <div class="inline-block p-3 bg-blue-50 text-blue-600 rounded-full mb-2">
-                    <i class="fa-solid fa-user-graduate text-3xl"></i>
-                </div>
-                <h2 class="text-2xl font-bold text-slate-800">Ingreso de Alumnos</h2>
-                <p class="text-sm text-slate-500">Ingresa tus datos obligatorios para comenzar</p>
-            </div>
-
-            <form id="form-alumno-login" onsubmit="iniciarSesionAlumno(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre Completo *</label>
-                    <input type="text" id="alumno-nombre" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Colegio *</label>
-                    <select id="alumno-colegio" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
-                        <option value="">Selecciona Colegio...</option>
-                        <option value="Colegio 1">Colegio Esmeralda</option>
-                        <option value="Colegio 2">Colegio Innova</option>
-                    </select>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Grado *</label>
-                        <select id="alumno-grado" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
-                            <option value="">Grado...</option>
-                            <option value="4to Bachillerato">4to Bachillerato</option>
-                            <option value="5to Bachillerato">5to Bachillerato</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Sección *</label>
-                        <input type="text" id="alumno-seccion" placeholder="Ej. A" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm uppercase">
-                    </div>
-                </div>
-
-                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg shadow-md transition text-sm">
-                    Ver Exámenes Disponibles <i class="fa-solid fa-arrow-right ml-1"></i>
-                </button>
-            </form>
-        </section>
-
-        <!-- 2. VISTA SELECCIÓN EXAMEN ALUMNO -->
-        <section id="vista-lista-examenes" class="hidden max-w-4xl mx-auto">
-            <div class="bg-white p-4 rounded-xl shadow-sm mb-6 flex justify-between items-center border border-slate-200">
-                <div>
-                    <h2 id="alumno-saludo" class="text-lg font-bold text-slate-800">Hola, Alumno</h2>
-                    <p id="alumno-info-tag" class="text-xs text-slate-500">Colegio | Grado | Sección</p>
-                </div>
-                <button onclick="cerrarSesionAlumno()" class="text-xs text-red-600 hover:text-red-800 font-semibold">
-                    <i class="fa-solid fa-right-from-bracket"></i> Salir
-                </button>
-            </div>
-
-            <h3 class="text-md font-bold text-slate-700 mb-3 flex items-center">
-                <i class="fa-solid fa-file-pen mr-2 text-blue-600"></i> Exámenes Disponibles
-            </h3>
-            <div id="contenedor-examenes-disponibles" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Se llena dinámicamente -->
-            </div>
-        </section>
-
-        <!-- 3. VISTA REALIZAR EXAMEN ALUMNO -->
-        <section id="vista-evaluacion" class="hidden max-w-3xl mx-auto">
-            <!-- Barra Superior Flotante con Temporizador -->
-            <div class="bg-slate-900 text-white p-4 rounded-xl shadow-md sticky top-16 z-30 mb-6 flex justify-between items-center border-b-4 border-amber-500">
-                <div>
-                    <h3 id="eval-materia" class="font-bold text-base">Materia</h3>
-                    <p id="eval-valor" class="text-xs text-slate-300">Valor: -- Puntos</p>
-                </div>
-                <div class="text-right">
-                    <span class="text-xs text-slate-400 block uppercase font-bold">Tiempo Restante</span>
-                    <div id="eval-timer" class="text-2xl font-mono font-bold text-amber-400">00:00</div>
-                </div>
-            </div>
-
-            <!-- Header Examen / Logo -->
-            <div class="bg-white p-6 rounded-xl shadow-sm mb-6 border border-slate-200 text-center">
-                <img id="eval-logo" src="" alt="Logo" class="max-h-20 mx-auto mb-3 hidden">
-                <h2 id="eval-titulo" class="text-xl font-bold text-slate-800">Título del Examen</h2>
-                <div class="mt-2 inline-flex gap-2 text-xs text-slate-500">
-                    <span id="eval-colegio" class="bg-slate-100 px-2 py-1 rounded">Colegio</span>
-                    <span id="eval-grado" class="bg-slate-100 px-2 py-1 rounded">Grado/Sección</span>
-                </div>
-            </div>
-
-            <form id="form-examen-alumno" onsubmit="finalizarExamenManual(event)" class="space-y-6">
-                <div id="contenedor-series-alumno">
-                    <!-- Se renderizan las preguntas aquí -->
-                </div>
-
-                <div class="p-4 bg-white rounded-xl shadow-sm border border-slate-200 text-center">
-                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-8 py-3 rounded-lg shadow-md transition text-base">
-                        <i class="fa-solid fa-paper-plane mr-2"></i> Finalizar y Enviar Examen
-                    </button>
-                </div>
-            </form>
-        </section>
-
-        <!-- 4. VISTA RESULTADO FINAL ALUMNO -->
-        <section id="vista-resultado-alumno" class="hidden max-w-2xl mx-auto bg-white p-6 rounded-xl shadow-md border border-slate-200 text-center">
-            <div id="res-icon" class="text-5xl mb-3"></div>
-            <h2 class="text-2xl font-bold text-slate-800">Resultado del Examen</h2>
-            <p id="res-alumno-nombre" class="text-slate-500 text-sm mb-4">Alumno</p>
-
-            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 max-w-sm mx-auto">
-                <span class="text-xs font-bold text-slate-400 uppercase">Punteo Obtenido</span>
-                <div id="res-punteo" class="text-4xl font-extrabold text-blue-600 my-1">0 / 0</div>
-                <div id="res-porcentaje" class="text-xs font-semibold text-slate-600">0%</div>
-            </div>
-
-            <div id="res-faltas-box" class="hidden bg-amber-50 border border-amber-200 text-amber-800 text-xs p-3 rounded-lg mb-6 text-left">
-                <i class="fa-solid fa-triangle-exclamation text-amber-600 mr-1"></i>
-                <strong>Registro de Faltas:</strong> Se detectaron <span id="res-total-faltas">0</span> infracciones por cambio de pantalla durante tu prueba.
-            </div>
-
-            <h3 class="text-sm font-bold text-slate-700 text-left mb-3">Desglose de Respuestas:</h3>
-            <div id="res-desglose" class="space-y-3 text-left mb-6 text-sm">
-                <!-- Se llena dinámicamente -->
-            </div>
-
-            <button onclick="mostrarVista('ingreso-alumno')" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold text-sm">
-                Volver al Inicio
-            </button>
-        </section>
-
-        <!-- 5. LOGIN PROFESOR MODAL -->
-        <section id="vista-login-profesor" class="hidden max-w-xs mx-auto bg-white p-6 rounded-xl shadow-md my-12 border">
-            <h3 class="text-lg font-bold text-center mb-4 text-slate-800">Acceso Profesor</h3>
-            <input type="password" id="profesor-pass" placeholder="Contraseña de Administración" class="w-full px-3 py-2 border rounded-lg mb-4 text-sm outline-none">
-            <button onclick="autenticarProfesor()" class="w-full bg-slate-800 text-white py-2 rounded-lg font-bold text-sm">
-                Entrar al Panel
-            </button>
-        </section>
-
-        <!-- 6. PANEL DE CONTROL DEL PROFESOR -->
-        <section id="vista-panel-profesor" class="hidden space-y-6">
-            <div class="bg-white p-4 rounded-xl shadow-sm border flex justify-between items-center">
-                <h2 class="text-lg font-bold text-slate-800"><i class="fa-solid fa-sliders text-blue-600 mr-2"></i> Panel Docente</h2>
-                <div class="flex gap-2">
-                    <button onclick="exportarRespaldoJSON()" class="text-xs bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded border text-slate-700">
-                        <i class="fa-solid fa-download"></i> Respaldar JSON
-                    </button>
-                    <button onclick="cerrarSesionProfesor()" class="text-xs bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded border border-red-200">
-                        Salir
-                    </button>
-                </div>
-            </div>
-
-            <!-- Pestañas del Panel -->
-            <div class="flex border-b border-slate-200 gap-2">
-                <button onclick="cambiarTabProfesor('examenes')" id="tab-examenes" class="py-2 px-4 font-bold text-sm border-b-2 border-blue-600 text-blue-600">
-                    <i class="fa-solid fa-folder-open mr-1"></i> Exámenes
-                </button>
-                <button onclick="cambiarTabProfesor('resultados')" id="tab-resultados" class="py-2 px-4 font-bold text-sm text-slate-500">
-                    <i class="fa-solid fa-chart-simple mr-1"></i> Notas y Faltas
-                </button>
-            </div>
-
-            <!-- SUB-TAB 1: GESTIÓN DE EXÁMENES -->
-            <div id="subtab-examenes" class="space-y-4">
-                <div class="flex justify-between items-center gap-2 flex-wrap">
-                    <div class="flex gap-2 flex-1 min-w-[280px]">
-                        <input type="text" id="filtro-busqueda" oninput="filtrarExamenes()" placeholder="Buscar examen por título o materia..." class="px-3 py-1.5 border rounded-lg text-sm flex-1">
-                        <select id="filtro-colegio" onchange="filtrarExamenes()" class="px-3 py-1.5 border rounded-lg text-sm">
-                            <option value="">Todos los Colegios</option>
-                            <option value="Colegio 1">Colegio Esmeralda</option>
-                            <option value="Colegio 2">Colegio Innova</option>
-                        </select>
-                    </div>
-                    <button onclick="abrirCreadorExamen()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-lg text-sm">
-                        <i class="fa-solid fa-plus mr-1"></i> Crear Examen
-                    </button>
-                </div>
-
-                <div id="tabla-examenes-contenedor" class="bg-white rounded-xl shadow-sm border overflow-x-auto">
-                    <!-- Tabla de Exámenes -->
-                </div>
-            </div>
-
-            <!-- SUB-TAB 2: RESULTADOS Y NOTAS -->
-            <div id="subtab-resultados" class="hidden space-y-4">
-                <div class="flex gap-2 flex-wrap items-center justify-between">
-                    <div class="flex gap-2 flex-1 min-w-[280px]">
-                        <input type="text" id="filtro-alumno-search" oninput="filtrarResultados()" placeholder="Buscar por nombre de alumno..." class="px-3 py-1.5 border rounded-lg text-sm flex-1">
-                        <select id="filtro-res-colegio" onchange="filtrarResultados()" class="px-3 py-1.5 border rounded-lg text-sm">
-                            <option value="">Todos los Colegios</option>
-                            <option value="Colegio 1">Colegio Esmeralda</option>
-                            <option value="Colegio 2">Colegio Innova</option>
-                        </select>
-                    </div>
-                    <button onclick="generarReportePDFGeneral()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-lg text-sm">
-                        <i class="fa-solid fa-file-pdf mr-1"></i> Imprimir Reporte PDF
-                    </button>
-                </div>
-
-                <div id="tabla-resultados-contenedor" class="bg-white rounded-xl shadow-sm border overflow-x-auto">
-                    <!-- Tabla de Resultados -->
-                </div>
-            </div>
-        </section>
-
-        <!-- 7. CREADOR / EDITOR DE EXAMEN (MODAL / OVERLAY) -->
-        <section id="vista-creador-examen" class="hidden fixed inset-0 bg-slate-900/60 z-50 flex justify-center items-start overflow-y-auto p-4">
-            <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full my-8 p-6 space-y-6 relative">
-                <div class="flex justify-between items-center border-b pb-3">
-                    <h3 id="creador-titulo" class="text-xl font-bold text-slate-800">Nuevo Examen</h3>
-                    <button onclick="cerrarCreadorExamen()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
-                </div>
-
-                <form id="form-crear-examen" onsubmit="guardarExamenDB(event)" class="space-y-4">
-                    <input type="hidden" id="examen-id-edit">
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Título del Examen *</label>
-                            <input type="text" id="ex-titulo" required class="w-full px-3 py-2 border rounded-lg text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Materia *</label>
-                            <input type="text" id="ex-materia" required class="w-full px-3 py-2 border rounded-lg text-sm">
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Colegio *</label>
-                            <select id="ex-colegio" class="w-full px-3 py-2 border rounded-lg text-sm">
-                                <option value="TODOS">Todos los Colegios</option>
-                                <option value="Colegio 1">Colegio Esmeralda</option>
-                                <option value="Colegio 2">Colegio Innova</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Grado *</label>
-                            <select id="ex-grado" class="w-full px-3 py-2 border rounded-lg text-sm">
-                                <option value="TODOS">Todos los Grados</option>
-                                <option value="4to Bachillerato">4to Bachillerato</option>
-                                <option value="5to Bachillerato">5to Bachillerato</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Sección *</label>
-                            <input type="text" id="ex-seccion" placeholder="TODAS o ej. A" class="w-full px-3 py-2 border rounded-lg text-sm uppercase">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tiempo (Minutos) *</label>
-                            <input type="number" id="ex-tiempo" min="1" value="30" required class="w-full px-3 py-2 border rounded-lg text-sm">
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Valor Total (Puntos)</label>
-                            <input type="number" id="ex-valor" value="20" required class="w-full px-3 py-2 border rounded-lg text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">URL Logo Colegio (Opcional)</label>
-                            <input type="url" id="ex-logo" placeholder="https://..." class="w-full px-3 py-2 border rounded-lg text-sm">
-                        </div>
-                    </div>
-
-                    <hr>
-
-                    <!-- Series y Preguntas -->
-                    <div>
-                        <div class="flex justify-between items-center mb-3">
-                            <h4 class="font-bold text-slate-800 text-sm">Series de Preguntas</h4>
-                            <button type="button" onclick="agregarSerieCreador()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1 rounded text-xs">
-                                <i class="fa-solid fa-plus mr-1"></i> Agregar Serie
-                            </button>
-                        </div>
-                        <div id="contenedor-series-creador" class="space-y-4">
-                            <!-- Bloques de Series -->
-                        </div>
-                    </div>
-
-                    <div class="flex justify-end gap-2 pt-4 border-t">
-                        <button type="button" onclick="cerrarCreadorExamen()" class="px-4 py-2 border rounded-lg text-sm">Cancelar</button>
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-lg text-sm">Guardar Examen</button>
-                    </div>
-                </form>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- MODAL ALERTA FALTAS / INTENTO DE TRAMPA -->
-    <div id="modal-falta" class="hidden fixed inset-0 bg-red-900/80 z-50 flex justify-center items-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 text-center border-4 border-red-600 animate-bounce">
-            <div class="text-red-600 text-5xl mb-2"><i class="fa-solid fa-triangle-exclamation"></i></div>
-            <h3 class="text-xl font-bold text-red-700">¡Advertencia de Seguridad!</h3>
-            <p class="text-sm text-slate-600 my-3">
-                Has cambiado de pantalla o minimizado el navegador. Esta acción se registra como una <strong>falta</strong>.
-            </p>
-            <div class="bg-red-50 p-2 rounded text-red-800 text-xs font-bold mb-4">
-                Faltas cometidas: <span id="falta-contador" class="text-base">0</span> / 3
-            </div>
-            <button onclick="cerrarModalFalta()" class="w-full bg-red-600 text-white py-2 rounded-lg font-bold text-sm">
-                Entendido y Continuar
-            </button>
-        </div>
+<div class="container-fluid">
+  <div class="row">
+    <!-- Navegación Lateral -->
+    <div class="col-md-3 col-lg-2 sidebar p-3">
+      <h4 class="text-center mb-4"><i class="fa-solid fa-school me-2"></i>EduControl</h4>
+      <ul class="nav nav-pills flex-column mb-auto">
+        <li class="nav-item mb-2">
+          <a href="#" class="nav-link active" onclick="switchTab('colegios')"><i class="fa-solid fa-building me-2"></i>Colegios</a>
+        </li>
+        <li class="nav-item mb-2">
+          <a href="#" class="nav-link" onclick="switchTab('grados')"><i class="fa-solid fa-graduation-cap me-2"></i>Grados y Secciones</a>
+        </li>
+        <li class="nav-item mb-2">
+          <a href="#" class="nav-link" onclick="switchTab('examenes')"><i class="fa-solid fa-file-pen me-2"></i>Crear Examen</a>
+        </li>
+      </ul>
     </div>
 
-    <!-- Script Principal -->
-    <script src="app.js"></script>
+    <!-- Contenido Principal -->
+    <div class="col-md-9 col-lg-10 p-4">
+      
+      <!-- SECCIÓN: COLEGIOS -->
+      <div id="sec-colegios">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h2>Gestión de Colegios</h2>
+          <button class="btn btn-primary" onclick="openColegioModal()"><i class="fa-solid fa-plus me-2"></i>Agregar Colegio</button>
+        </div>
+        <div class="card p-3 mb-4">
+          <input type="text" id="searchColegio" class="form-control" placeholder="Buscar colegio por nombre..." onkeyup="renderColegios()">
+        </div>
+        <div class="card p-3">
+          <table class="table table-hover align-middle">
+            <thead class="table-dark">
+              <tr>
+                <th>Nombre del Colegio</th>
+                <th>Dirección</th>
+                <th>Teléfono</th>
+                <th class="text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tblColegios"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SECCIÓN: GRADOS Y SECCIONES -->
+      <div id="sec-grados" style="display: none;">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h2>Gestión de Grados y Secciones</h2>
+          <button class="btn btn-primary" onclick="openGradoModal()"><i class="fa-solid fa-plus me-2"></i>Agregar Grado</button>
+        </div>
+        <div class="card p-3 mb-4">
+          <input type="text" id="searchGrado" class="form-control" placeholder="Buscar por colegio o grado..." onkeyup="renderGrados()">
+        </div>
+        <div class="card p-3">
+          <table class="table table-hover align-middle">
+            <thead class="table-dark">
+              <tr>
+                <th>Colegio</th>
+                <th>Grado</th>
+                <th>Sección</th>
+                <th class="text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tblGrados"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SECCIÓN: EXÁMENES -->
+      <div id="sec-examenes" style="display: none;">
+        <h2 class="mb-4">Creación de Exámenes</h2>
+        <div class="card p-4">
+          <form id="formExamen" onsubmit="guardarExamen(event)">
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Título del Examen</label>
+                <input type="text" id="examTitulo" class="form-control" required placeholder="Ej: Evaluación Parcial de Programación">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Colegio</label>
+                <select id="examColegio" class="form-select" required></select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Grado y Sección</label>
+                <select id="examGrado" class="form-select" required></select>
+              </div>
+            </div>
+
+            <hr class="my-4">
+            <h4>Preguntas del Examen</h4>
+            <div id="containerPreguntas"></div>
+
+            <div class="d-flex gap-2 my-3">
+              <button type="button" class="btn btn-outline-success" onclick="agregarPregunta('FV')">
+                <i class="fa-solid fa-circle-check me-2"></i>+ Falso / Verdadero
+              </button>
+              <button type="button" class="btn btn-outline-info" onclick="agregarPregunta('MC')">
+                <i class="fa-solid fa-list-check me-2"></i>+ Selección Múltiple
+              </button>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 mt-3"><i class="fa-solid fa-save me-2"></i>Guardar Examen</button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: COLEGIO -->
+<div class="modal fade" id="modalColegio" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="titleModalColegio">Agregar Colegio</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="colId">
+        <div class="mb-3">
+          <label class="form-label">Nombre del Colegio</label>
+          <input type="text" id="colNombre" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Dirección</label>
+          <input type="text" id="colDireccion" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Teléfono</label>
+          <input type="text" id="colTelefono" class="form-control">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="guardarColegio()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: GRADO -->
+<div class="modal fade" id="modalGrado" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="titleModalGrado">Agregar Grado</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="graId">
+        <div class="mb-3">
+          <label class="form-label">Colegio</label>
+          <select id="graColegioSelect" class="form-select" required></select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Nombre del Grado</label>
+          <input type="text" id="graNombre" class="form-control" placeholder="Ej: 4to Bachillerato en Computación" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Sección</label>
+          <input type="text" id="graSeccion" class="form-control" placeholder="Ej: A" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="guardarGrado()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SDK Firebase (v9 Compat para integración rápida) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  // CONFIGURACIÓN DE FIREBASE (Reemplaza con las llaves de tu proyecto)
+  const firebaseConfig = {
+    apiKey: "TU_API_KEY",
+    authDomain: "TU_PROJECT_ID.firebaseapp.com",
+    projectId: "TU_PROJECT_ID",
+    storageBucket: "TU_PROJECT_ID.appspot.com",
+    messagingSenderId: "TU_SENDER_ID",
+    appId: "TU_APP_ID"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  // Variables Globales
+  let colegios = [];
+  let grados = [];
+  let modalColObj = new bootstrap.Modal(document.getElementById('modalColegio'));
+  let modalGraObj = new bootstrap.Modal(document.getElementById('modalGrado'));
+
+  // Carga Inicial
+  window.onload = () => {
+    cargarColegios();
+    cargarGrados();
+  };
+
+  function switchTab(tab) {
+    document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    document.getElementById('sec-colegios').style.display = tab === 'colegios' ? 'block' : 'none';
+    document.getElementById('sec-grados').style.display = tab === 'grados' ? 'block' : 'none';
+    document.getElementById('sec-examenes').style.display = tab === 'examenes' ? 'block' : 'none';
+
+    if(tab === 'examenes') cargarSelectsExamen();
+  }
+
+  // ==================== MÓDULO COLEGIOS ====================
+  function cargarColegios() {
+    db.collection("colegios").onSnapshot(snapshot => {
+      colegios = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderColegios();
+      actualizarSelectColegios();
+    });
+  }
+
+  function renderColegios() {
+    const filter = document.getElementById('searchColegio').value.toLowerCase();
+    const tbody = document.getElementById('tblColegios');
+    tbody.innerHTML = '';
+    
+    colegios.filter(c => c.nombre.toLowerCase().includes(filter)).forEach(c => {
+      tbody.innerHTML += `
+        <tr>
+          <td><strong>${c.nombre}</strong></td>
+          <td>${c.direccion || '-'}</td>
+          <td>${c.telefono || '-'}</td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-outline-warning me-1" onclick="editColegio('${c.id}')"><i class="fa-solid fa-pen"></i></button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteColegio('${c.id}')"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>
+      `;
+    });
+  }
+
+  function openColegioModal() {
+    document.getElementById('colId').value = '';
+    document.getElementById('colNombre').value = '';
+    document.getElementById('colDireccion').value = '';
+    document.getElementById('colTelefono').value = '';
+    document.getElementById('titleModalColegio').innerText = 'Agregar Colegio';
+    modalColObj.show();
+  }
+
+  function editColegio(id) {
+    const c = colegios.find(item => item.id === id);
+    if (!c) return;
+    document.getElementById('colId').value = c.id;
+    document.getElementById('colNombre').value = c.nombre;
+    document.getElementById('colDireccion').value = c.direccion || '';
+    document.getElementById('colTelefono').value = c.telefono || '';
+    document.getElementById('titleModalColegio').innerText = 'Editar Colegio';
+    modalColObj.show();
+  }
+
+  async function guardarColegio() {
+    const id = document.getElementById('colId').value;
+    const data = {
+      nombre: document.getElementById('colNombre').value.trim(),
+      direccion: document.getElementById('colDireccion').value.trim(),
+      telefono: document.getElementById('colTelefono').value.trim()
+    };
+    if (!data.nombre) return alert("El nombre es obligatorio");
+
+    if (id) {
+      await db.collection("colegios").doc(id).update(data);
+    } else {
+      await db.collection("colegios").add(data);
+    }
+    modalColObj.hide();
+  }
+
+  async function deleteColegio(id) {
+    if (confirm("¿Deseas eliminar este colegio?")) {
+      await db.collection("colegios").doc(id).delete();
+    }
+  }
+
+  // ==================== MÓDULO GRADOS Y SECCIONES ====================
+  function cargarGrados() {
+    db.collection("grados").onSnapshot(snapshot => {
+      grados = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      renderGrados();
+    });
+  }
+
+  function renderGrados() {
+    const filter = document.getElementById('searchGrado').value.toLowerCase();
+    const tbody = document.getElementById('tblGrados');
+    tbody.innerHTML = '';
+
+    grados.filter(g => {
+      const colNombre = (colegios.find(c => c.id === g.colegioId)?.nombre || '').toLowerCase();
+      return g.nombre.toLowerCase().includes(filter) || colNombre.includes(filter);
+    }).forEach(g => {
+      const col = colegios.find(c => c.id === g.colegioId);
+      tbody.innerHTML += `
+        <tr>
+          <td>${col ? col.nombre : 'Colegio No Encontrado'}</td>
+          <td><strong>${g.nombre}</strong></td>
+          <td><span class="badge bg-secondary">${g.seccion}</span></td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-outline-warning me-1" onclick="editGrado('${g.id}')"><i class="fa-solid fa-pen"></i></button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteGrado('${g.id}')"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>
+      `;
+    });
+  }
+
+  function openGradoModal() {
+    document.getElementById('graId').value = '';
+    document.getElementById('graNombre').value = '';
+    document.getElementById('graSeccion').value = '';
+    document.getElementById('titleModalGrado').innerText = 'Agregar Grado';
+    modalGraObj.show();
+  }
+
+  function editGrado(id) {
+    const g = grados.find(item => item.id === id);
+    if (!g) return;
+    document.getElementById('graId').value = g.id;
+    document.getElementById('graColegioSelect').value = g.colegioId;
+    document.getElementById('graNombre').value = g.nombre;
+    document.getElementById('graSeccion').value = g.seccion;
+    document.getElementById('titleModalGrado').innerText = 'Editar Grado';
+    modalGraObj.show();
+  }
+
+  async function guardarGrado() {
+    const id = document.getElementById('graId').value;
+    const data = {
+      colegioId: document.getElementById('graColegioSelect').value,
+      nombre: document.getElementById('graNombre').value.trim(),
+      seccion: document.getElementById('graSeccion').value.trim()
+    };
+    if (!data.colegioId || !data.nombre || !data.seccion) return alert("Todos los campos son obligatorios");
+
+    if (id) {
+      await db.collection("grados").doc(id).update(data);
+    } else {
+      await db.collection("grados").add(data);
+    }
+    modalGraObj.hide();
+  }
+
+  async function deleteGrado(id) {
+    if (confirm("¿Deseas eliminar este grado?")) {
+      await db.collection("grados").doc(id).delete();
+    }
+  }
+
+  function actualizarSelectColegios() {
+    const selects = [document.getElementById('graColegioSelect'), document.getElementById('examColegio')];
+    selects.forEach(select => {
+      if (!select) return;
+      select.innerHTML = '<option value="">Seleccione Colegio...</option>';
+      colegios.forEach(c => {
+        select.innerHTML += `<option value="${c.id}">${c.nombre}</option>`;
+      });
+    });
+  }
+
+  // ==================== MÓDULO CREACIÓN DE EXÁMENES ====================
+  let contadorPreguntas = 0;
+
+  function cargarSelectsExamen() {
+    actualizarSelectColegios();
+    const examColegio = document.getElementById('examColegio');
+    const examGrado = document.getElementById('examGrado');
+    
+    examColegio.onchange = () => {
+      const colId = examColegio.value;
+      examGrado.innerHTML = '<option value="">Seleccione Grado...</option>';
+      grados.filter(g => g.colegioId === colId).forEach(g => {
+        examGrado.innerHTML += `<option value="${g.id}">${g.nombre} - Sección ${g.seccion}</option>`;
+      });
+    };
+  }
+
+  function agregarPregunta(tipo) {
+    contadorPreguntas++;
+    const container = document.getElementById('containerPreguntas');
+    const pId = contadorPreguntas;
+
+    let htmlPregunta = `
+      <div class="card p-3 mb-3 border-secondary" id="pregunta_${pId}" data-tipo="${tipo}">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5>Pregunta #${pId} <span class="badge ${tipo === 'FV' ? 'bg-info' : 'bg-warning'} text-dark">${tipo === 'FV' ? 'Falso / Verdadero' : 'Selección Múltiple'}</span></h5>
+          <button type="button" class="btn btn-sm btn-outline-danger" onclick="eliminarPregunta(${pId})"><i class="fa-solid fa-trash"></i></button>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Enunciado de la Pregunta</label>
+          <input type="text" class="form-control preg-enunciado" required placeholder="Escriba la pregunta aquí...">
+        </div>
+    `;
+
+    if (tipo === 'FV') {
+      htmlPregunta += `
+        <div class="mb-2">
+          <label class="form-label d-block">Respuesta Correcta:</label>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="resp_correcta_${pId}" value="true" checked>
+            <label class="form-check-label">Verdadero</label>
+          </div>
+          <div class="form-check form-check-inline">
+            <input class="form-check-input" type="radio" name="resp_correcta_${pId}" value="false">
+            <label class="form-check-label">Falso</label>
+          </div>
+        </div>
+      `;
+    } else if (tipo === 'MC') {
+      htmlPregunta += `
+        <div class="mb-2">
+          <label class="form-label">Opciones de Respuesta (Marque la radio de la respuesta correcta)</label>
+          <div class="opciones-container_${pId}">
+            ${[0, 1, 2].map(i => `
+              <div class="input-group mb-2">
+                <div class="input-group-text">
+                  <input class="form-check-input mt-0" type="radio" name="resp_correcta_${pId}" value="${i}" ${i === 0 ? 'checked' : ''}>
+                </div>
+                <input type="text" class="form-control preg-opcion" required placeholder="Opción ${i + 1}">
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    htmlPregunta += `</div>`;
+    container.insertAdjacentHTML('beforeend', htmlPregunta);
+  }
+
+  function eliminarPregunta(id) {
+    document.getElementById(`pregunta_${id}`)?.remove();
+  }
+
+  async function guardarExamen(e) {
+    e.preventDefault();
+    const titulo = document.getElementById('examTitulo').value.trim();
+    const colegioId = document.getElementById('examColegio').value;
+    const gradoId = document.getElementById('examGrado').value;
+    const domPreguntas = document.querySelectorAll('#containerPreguntas .card');
+
+    if (domPreguntas.length === 0) {
+      return alert("Debe agregar al menos una pregunta al examen.");
+    }
+
+    const preguntas = [];
+
+    domPreguntas.forEach(card => {
+      const tipo = card.getAttribute('data-tipo');
+      const enunciado = card.querySelector('.preg-enunciado').value.trim();
+
+      if (tipo === 'FV') {
+        const respuestaCorrecta = card.querySelector(`input[name^="resp_correcta_"]:checked`).value === 'true';
+        preguntas.push({
+          tipo: 'booleano',
+          enunciado,
+          respuestaCorrecta
+        });
+      } else if (tipo === 'MC') {
+        const opcionesInputs = card.querySelectorAll('.preg-opcion');
+        const opciones = Array.from(opcionesInputs).map(input => input.value.trim());
+        const respuestaCorrecta = parseInt(card.querySelector(`input[name^="resp_correcta_"]:checked`).value);
+
+        preguntas.push({
+          tipo: 'seleccion_multiple',
+          enunciado,
+          opciones,
+          respuestaCorrecta
+        });
+      }
+    });
+
+    const examen = {
+      titulo,
+      colegioId,
+      gradoId,
+      preguntas,
+      fechaCreacion: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    try {
+      await db.collection("examenes").add(examen);
+      alert("¡Examen guardado exitosamente!");
+      document.getElementById('formExamen').reset();
+      document.getElementById('containerPreguntas').innerHTML = '';
+    } catch (err) {
+      console.error("Error al guardar el examen:", err);
+      alert("Hubo un error al guardar el examen.");
+    }
+  }
+</script>
 </body>
 </html>

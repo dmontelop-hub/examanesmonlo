@@ -1,25 +1,122 @@
-/* Personalizaciones y seguridad visual */
+/* ==========================================================================
+   EduControl · Estilos personalizados y seguridad visual
+   ========================================================================== */
+
+:root {
+  --brand-900: #0f1b3d;
+  --brand-800: #16244f;
+  --brand-700: #1f3170;
+  --brand-600: #2c46a6;
+  --brand-500: #3958d6;
+  --brand-100: #e7ebfb;
+  --accent-500: #e08a3c;
+  --accent-100: #fbeada;
+  --ok-500: #1f9d63;
+  --danger-500: #d64545;
+}
+
+* { box-sizing: border-box; }
+
 body {
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, sans-serif;
+  background-color: #f3f4f8;
+  -webkit-font-smoothing: antialiased;
 }
 
-input, textarea {
-    -webkit-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
-    user-select: text;
+/* --------------------------------------------------------------------
+   Protección visual durante examen (disuasiva, no infalible)
+   -------------------------------------------------------------------- */
+body.modo-examen,
+body.modo-examen * {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
-@keyframes bounce {
-    0%, 100% { transform: translateY(-5%); }
-    50% { transform: translateY(0); }
+body.modo-examen input,
+body.modo-examen textarea {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
 }
 
-.animate-bounce {
-    animation: bounce 0.6s ease-in-out infinite;
+/* Difumina el contenido del examen si se detecta pérdida de foco */
+body.modo-examen.foco-perdido #vista-evaluacion {
+  filter: blur(12px);
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------
+   Utilidades
+   -------------------------------------------------------------------- */
+.hidden { display: none !important; }
+
+.scrollbar-fina::-webkit-scrollbar { width: 8px; height: 8px; }
+.scrollbar-fina::-webkit-scrollbar-thumb { background: #c7cbe0; border-radius: 8px; }
+.scrollbar-fina::-webkit-scrollbar-track { background: transparent; }
+
+@keyframes bounce-suave {
+  0%, 100% { transform: translateY(-4%); }
+  50% { transform: translateY(0); }
+}
+.animate-bounce-suave { animation: bounce-suave 0.8s ease-in-out infinite; }
+
+@keyframes pulso-alerta {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(214, 69, 69, 0.45); }
+  70% { box-shadow: 0 0 0 10px rgba(214, 69, 69, 0); }
+}
+.animate-pulso-alerta { animation: pulso-alerta 1.4s infinite; }
+
+.fade-in { animation: fadeIn .25s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px);} to { opacity: 1; transform: translateY(0);} }
+
+/* Marca de agua sutil sobre el examen (dificulta reutilizar capturas) */
+.marca-agua {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+  opacity: 0.05;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: space-around;
+  justify-content: space-around;
+  transform: rotate(-20deg) scale(1.3);
+  font-weight: 800;
+  font-size: 13px;
+  color: #000;
+}
+
+/* --------------------------------------------------------------------
+   Sidebar admin
+   -------------------------------------------------------------------- */
+.admin-nav-link {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .6rem .9rem;
+  border-radius: .6rem;
+  color: #cbd3ef;
+  font-size: .875rem;
+  font-weight: 600;
+  transition: background .15s ease, color .15s ease;
+  cursor: pointer;
+}
+.admin-nav-link:hover { background: rgba(255,255,255,.08); color: #fff; }
+.admin-nav-link.active { background: var(--brand-500); color: #fff; }
+
+/* --------------------------------------------------------------------
+   Impresión
+   -------------------------------------------------------------------- */
+@media print {
+  body * { visibility: hidden; }
+  #zona-imprimible, #zona-imprimible * { visibility: visible; }
+  #zona-imprimible {
+    position: absolute; left: 0; top: 0; width: 100%;
+  }
+  .no-imprimir { display: none !important; }
 }
